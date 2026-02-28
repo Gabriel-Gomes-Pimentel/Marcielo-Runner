@@ -8,13 +8,20 @@ export default class Pix extends Phaser.Physics.Arcade.Sprite {
         this.scene.add.existing(this);
         this.scene.physics.add.existing(this);
 
-        // Tamanho visual reduzido para leitura na plataforma.
-        this.setDisplaySize(90, 90);
+        // Usa um frame com a área útil do PNG para remover margens transparentes.
+        const texture = this.scene.textures.get('pix');
+        if (texture && !texture.has('pix-main')) {
+            texture.add('pix-main', 0, 860, 378, 200, 200);
+        }
+        this.setFrame('pix-main');
+
+        // Tamanho visual final em cena.
+        this.setDisplaySize(120, 120);
 
         // Não sofre gravidade para manter alinhamento na pista.
         this.body.setAllowGravity(false);
         this.body.setImmovable(true);
         this.body.setVelocityY(0);
-        this.body.setSize(70, 70, true);
+        this.body.setSize(90, 90, true);
     }
 }

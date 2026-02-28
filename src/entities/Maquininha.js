@@ -8,13 +8,20 @@ export default class Maquininha extends Phaser.Physics.Arcade.Sprite {
         this.scene.add.existing(this);
         this.scene.physics.add.existing(this);
 
-        // Tamanho visual reduzido para leitura na plataforma.
-        this.setDisplaySize(70, 120);
+        // Usa um frame com a área útil do PNG para remover margens transparentes.
+        const texture = this.scene.textures.get('maquininha');
+        if (texture && !texture.has('maquininha-main')) {
+            texture.add('maquininha-main', 0, 822, 448, 232, 184);
+        }
+        this.setFrame('maquininha-main');
+
+        // Tamanho visual final em cena.
+        this.setDisplaySize(140, 110);
 
         // Não sofre gravidade para manter alinhamento na pista.
         this.body.setAllowGravity(false);
         this.body.setImmovable(true);
         this.body.setVelocityY(0);
-        this.body.setSize(55, 100, true);
+        this.body.setSize(110, 85, true);
     }
 }
