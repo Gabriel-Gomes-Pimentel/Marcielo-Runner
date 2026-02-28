@@ -1,26 +1,41 @@
-import Phaser from 'phaser';
+export default class Marcielo extends Phaser.GameObjects.Sprite {
+  constructor(cena, x, y) {
+    super(cena, x, y, "marcielo");
 
-// Entidade do jogador com física Arcade e ação de pulo.
-export default class Marcielo extends Phaser.Physics.Arcade.Sprite {
-    constructor(scene, x, y) {
-        super(scene, x, y, 'marcielo');
-        this.setScale(0.28);
-        this.setOrigin(0.5, 1);
-        this.scene.add.existing(this);
-        this.scene.physics.add.existing(this);
+    this.setScale(0.34);
+    this.scene.add.existing(this);
+    this.scene.physics.add.existing(this);
 
-        // Ajustes de corpo físico para colisão mais precisa.
-        this.body.setMass(10);
-        this.body.setSize(100, 28);
-        this.body.setOffset(206, 96);
+    /*
+      Ajuste de corpo físico para melhorar sensação de contato com o chão
+      e alinhar os pés do personagem com a arte da plataforma.
+    */
+    this.body.setMass(10);
+    const larguraHitbox = Math.max(46, this.displayWidth * 0.5);
+    const alturaHitbox = Math.max(92, this.displayHeight * 0.78);
+    const ajustePeVisual = -8;
+    this.body.setSize(larguraHitbox, alturaHitbox);
+    this.body.setOffset(
+      (this.displayWidth - larguraHitbox) / 2,
+      this.displayHeight - alturaHitbox + ajustePeVisual
+    );
 
-        this.jumpVelocity = -2100;
+    this.velocidadePulo = -2100;
+    this.somPulo = this.scene.sound.add("pulo", { volume: 0.5 });
+  }
+
+  /*
+    Executa o pulo do personagem.
+    O parâmetro forcarPulo é usado em situações especiais.
+  */
+  pular(forcarPulo) {
+    if (!this.body.blocked.down && !forcarPulo) {
+      return;
     }
 
-    // Aplica impulso vertical para o pulo.
-    jump() {
-        if ('setVelocityY' in this.body) {
-            this.body.setVelocityY(this.jumpVelocity);
-        }
+    if ("setVelocityY" in this.body) {
+      if (!this.somPulo.isPlaying) this.somPulo.play();
+      this.body.setVelocityY(this.velocidadePulo);
     }
+  }
 }

@@ -1,74 +1,70 @@
-import Phaser from 'phaser';
+export default class CenaCarregamento extends Phaser.Scene {
+  constructor() {
+    super({ key: "carregador" });
+  }
 
-// Cena responsável por pré-carregar recursos e iniciar a cena principal.
-export default class Loader extends Phaser.Scene {
-    constructor() {
-        super({ 'key': 'loader' });
+  /*
+    Carrega a fonte personalizada de forma assíncrona
+    para garantir que os textos usem o estilo correto.
+  */
+  async carregarFonte(nomeFonte, urlFonte) {
+    const novaFonte = new FontFace(nomeFonte, `url(${urlFonte})`);
+    const fonteCarregada = await novaFonte.load();
+    if (fonteCarregada) {
+      document.fonts.add(fonteCarregada);
+      return;
     }
 
-    // Carrega uma fonte externa para uso em textos do jogo.
-    async loadFont(name, url) {
-        const newFont = new FontFace(name, `url(${url})`);
-        const loadedFont = await newFont.load();
-        if (loadedFont) {
-            document.fonts.add(loadedFont);
-            return;
-        }
-        throw new Error("Unable to load font");
+    throw new Error("Não foi possível carregar a fonte");
+  }
+
+  preload() {
+    const larguraTela = this.scale.width;
+    const alturaTela = this.scale.height;
+
+    /*
+      Barra simples de progresso para feedback visual
+      durante o carregamento de recursos.
+    */
+    const barraProgresso = this.add.graphics();
+
+    this.load.on("progress", (valor) => {
+      barraProgresso.clear();
+      barraProgresso.fillStyle(0xffffff, 1);
+      barraProgresso.fillRect(0, alturaTela - 30, larguraTela * valor, 30);
+    });
+
+    this.load.on("complete", () => barraProgresso.destroy());
+
+    this.load.image("marcielo", "./graphics/marcielo-cropped.png");
+    this.load.image("pix", "./graphics/pix-cropped.png");
+    this.load.image("maquininha", "./graphics/maquininha-cropped.png");
+
+    this.load.image("plataformas", "./graphics/rua-plataforma.png");
+    this.load.image("camadaFundoUm", "./graphics/bgFirstLayer.png");
+    this.load.image("camadaFundoDois", "./graphics/bgSecondLayer.png");
+
+    this.load.audio("pulo", "./sounds/Jump.wav");
+    this.load.audio("coleta", "./sounds/Ring.wav");
+    this.load.audio("dano", "./sounds/Hurt.wav");
+    this.load.audio("cidade", "./sounds/city.mp3");
+  }
+
+  async create() {
+    this.textures.get("marcielo").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    this.textures.get("pix").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    this.textures.get("maquininha").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    this.textures.get("plataformas").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    this.textures.get("camadaFundoUm").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    this.textures.get("camadaFundoDois").setFilter(Phaser.Textures.FilterMode.NEAREST);
+
+    // Salvaguarda: se a fonte falhar, o jogo segue com fonte padrão para não bloquear execução.
+    try {
+      await this.carregarFonte("mania", "fonts/mania.ttf");
+    } catch {
+      // Mantém fluxo sem interromper a navegação entre cenas.
     }
 
-    // Pré-carrega imagens, áudios e barra de progresso.
-    preload() {
-        const screenWidth = this.scale.width;
-        const screenHeight = this.scale.height;
-
-        const progressBar = this.add.graphics();
-
-        this.load.on("progress", (value) => {
-            progressBar.clear();
-            // A cor da barra é definida em formato hexadecimal.
-            progressBar.fillStyle(0xffffff, 1);
-            progressBar.fillRect(0, screenHeight - 30, screenWidth * value, 30);
-        });
-
-        this.load.on("complete", () => progressBar.destroy());
-
-        this.load.image("marcielo", "./graphics/marcielo.png");
-
-        this.load.image("maquininha", "./graphics/maquininha.png");
-        this.load.image("pix", "./graphics/pix.png");
-
-        this.load.image("platforms", "./graphics/platforms.png");
-        this.load.image("chemical-bg", "./graphics/chemical-bg.png");
-
-        this.load.audio("jump", "./sounds/Jump.wav");
-        this.load.audio("coin", "./sounds/Ring.wav");
-        this.load.audio("destroy", "./sounds/Destroy.wav");
-        this.load.audio("hyper-ring", "./sounds/HyperRing.wav");
-        this.load.audio("hurt", "./sounds/Hurt.wav");
-        this.load.audio("city", "./sounds/city.mp3");
-    }
-
-    // Ajusta filtros visuais e entra na cena de jogo.
-    async create() {
-        this.textures
-            .get("marcielo")
-            .setFilter(Phaser.Textures.FilterMode.NEAREST);
-        this.textures
-            .get("maquininha")
-            .setFilter(Phaser.Textures.FilterMode.NEAREST);
-        this.textures.get("pix").setFilter(Phaser.Textures.FilterMode.NEAREST);
-        this.textures
-            .get("platforms")
-            .setFilter(Phaser.Textures.FilterMode.NEAREST);
-        this.textures
-            .get("chemical-bg")
-            .setFilter(Phaser.Textures.FilterMode.NEAREST);
-
-        this.loadFont("mania", "fonts/mania.ttf")
-            .catch(() => null)
-            .finally(() => {
-                this.scene.start("menuScene");
-            });
-    }
+    this.scene.start("menuScene");
+  }
 }

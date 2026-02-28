@@ -1,216 +1,333 @@
-import Phaser from 'phaser';
-import Marcielo from '../entities/Marcielo';
-import Pix from '../entities/Pix';
-import Maquininha from '../entities/Maquininha';
+import Marcielo from "../entities/Marcielo";
+import Pix from "../entities/Pix";
+import Maquininha from "../entities/Maquininha";
+import { selecionarGerador } from "../utils";
+import { configuracaoTextoMania } from "../constants";
 
-// Referência utilizada: https://www.youtube.com/watch?v=7GlxzAcs40c
+/*
+  Cena principal da partida (gameplay).
 
-const SCORE_LABEL = 'SCORE : ';
-const PIX_SPEED = 6;
-const MAQUININHA_SPEED = 4;
-const OBJECT_DEPTH = 9;
-const SPAWNER_WEIGHTS = [0.6, 0.4];
+  Objetivo geral:
+  - Inicializar todos os elementos visuais e físicos da corrida.
+  - Gerenciar estado da sessão (pontuação, velocidade e fim de jogo).
+  - Controlar entrada do jogador (teclado, clique e toque).
+  - Orquestrar spawn de obstáculos/coletáveis com distribuição probabilística.
+  - Atualizar movimento e colisões em tempo real no loop de renderização.
 
-// Escolhe uma função de surgimento com base em probabilidade ponderada.
-function selectSpawner(spawners, spawnerWeights) {
-    const randomValue = Math.random();
-    let cumulativeWeight = 0;
+  Integrações externas relevantes:
+  - Entidades de domínio: Marcielo, Pix e Maquininha.
+  - Utilitário de sorteio ponderado: selecionarGerador.
+  - Configuração tipográfica centralizada: configuracaoTextoMania.
+  - APIs do Phaser: Scene, Physics, Sound, Time, Geom e Registry.
+*/
+export default class CenaJogo extends Phaser.Scene {
+  /**
+   * Construtor padrão da cena.
+   *
+   * Responsabilidade:
+   * - Registrar a chave única da cena no Phaser para permitir transições via scene.start.
+   */
+  constructor() {
+    super({ key: "jogo" });
+  }
 
-    for (let index = 0; index < spawners.length; index++) {
-        cumulativeWeight += spawnerWeights[index];
-        if (randomValue <= cumulativeWeight) {
-            return spawners[index];
-        }
-    }
+  /**
+   * Hook de inicialização da cena executado uma única vez por entrada na cena.
+   *
+   * Responsabilidades principais:
+   * - Construir camadas visuais (céu, fundos, nuvens e rua).
+   * - Inicializar HUD e instruções de uso.
+   * - Configurar chão físico invisível para colisão.
+   * - Instanciar personagem principal e vínculo de colisão.
+   * - Registrar entradas do jogador para pulo.
+   * - Configurar grupos e geradores de objetos dinâmicos.
+   *
+   * @returns {void}
+   */
+  create() {
+    /*
+      Controle de estado da partida para evitar
+      múltiplos gatilhos de fim de jogo no mesmo frame.
+    */
+    this.estaEmFimDeJogo = false;
 
-    return spawners[spawners.length - 1];
+    this.ambienteCidade = this.sound.add("cidade", { volume: 0.2, loop: true });
+    this.ambienteCidade.play();
+
+    // Centro da tela utilizado como referência para textos e elementos centralizados.
+    const posicaoCentral = { x: this.scale.width / 2, y: this.scale.height / 2 };
+
+    // Estado de progressão da partida: pontuação acumulada e fator global de deslocamento.
+    this.pontuacao = 0;
+    this.velocidade = 0.16;
+
+    /*
+      Fundo do jogo usando as mesmas artes do menu:
+      céu como base e nuvens com leve movimento horizontal.
+    */
+    this.fundoCeu = this.add.image(0, 0, "ceu");
+    this.fundoCeu.setOrigin(0);
+    this.fundoCeu.setDisplaySize(this.scale.width, this.scale.height);
+    this.fundoCeu.setAlpha(0.95);
+
+    // Camada de cidade posicionada ao fundo para aumentar profundidade visual do cenário.
+    this.camadaFundoUm = this.add.image(0, this.scale.height, "camadaFundoUm");
+    this.camadaFundoUm.setOrigin(0, 1);
+    this.camadaFundoUm.setScale(this.scale.width / this.camadaFundoUm.width);
+    this.camadaFundoUm.setDepth(1);
+
+    // Nuvens em tileSprite para permitir deslocamento contínuo (efeito de parallax simples).
+    this.fundoNuvens = this.add.tileSprite(0, 0, this.scale.width, this.scale.height * 0.32, "nuvens");
+    this.fundoNuvens.setOrigin(0);
+    this.fundoNuvens.setAlpha(0.75);
+    this.fundoNuvens.setScale(1.45);
+    this.fundoNuvens.setDepth(2);
+
+    // A rua é desenhada com largura propositalmente maior que a viewport para evitar bordas visíveis.
+    const larguraRua = this.scale.width * 1.8;
+    this.plataformas = this.add.image((this.scale.width - larguraRua) / 2, this.scale.height, "plataformas");
+    this.plataformas.setOrigin(0, 0.95);
+    this.plataformas.setDisplaySize(larguraRua, 1000);
+    this.plataformas.setDepth(10);
+
+    // HUD de pontuação com tipografia global e contraste escuro para leitura sobre céu claro.
+    this.textoPontuacao = this.add.text(20, 20, `PONTOS : ${this.pontuacao}`, {
+      ...configuracaoTextoMania,
+      fontSize: 64,
+      color: "#000000",
+    });
+    this.textoPontuacao.setDepth(60);
+
+    // Mensagem de onboarding exibida até o primeiro pulo do jogador.
+    this.textoComoJogar = this.add
+      .text(posicaoCentral.x, posicaoCentral.y, "Aperte Espaço/Clique/Toque para Pular!", {
+        ...configuracaoTextoMania,
+        fontSize: 64,
+      })
+      .setOrigin(0.5);
+    this.textoComoJogar.setDepth(60);
+
+    /*
+      Chão invisível responsável apenas pela colisão física.
+      A arte visível do piso é controlada separadamente pelo tileSprite.
+    */
+    const grupoChao = this.physics.add.staticGroup();
+    this.chao = grupoChao.create(960, 950);
+    this.chao.setSize(1920, 110);
+    this.chao.setVisible(false);
+
+    // Entidade principal controlada pelo usuário.
+    this.marcielo = new Marcielo(this, 200, 825);
+    this.marcielo.setDepth(20);
+
+    // Regra de negócio de física: personagem deve colidir com o chão para resetar estado de pulo.
+    this.physics.add.collider(this.marcielo, this.chao);
+
+    /*
+      Rotina de entrada do pulo.
+      Regras:
+      - Na primeira interação, remove texto de instrução para reduzir ruído visual.
+      - Sempre delega para a entidade do jogador validar/executar o pulo.
+    */
+    const logicaPulo = (pointer) => {
+      // Ignora cliques/toques fora da área útil para evitar ações propositadamente inválidas.
+      if (pointer) {
+        const cliqueDentroDaTela =
+          pointer.x >= 0 &&
+          pointer.y >= 0 &&
+          pointer.x <= this.scale.width &&
+          pointer.y <= this.scale.height;
+
+        if (!cliqueDentroDaTela) return;
+      }
+
+      // Evita chamada de pulo quando a entidade ainda não está pronta.
+      if (!this.marcielo || !this.marcielo.active) return;
+
+      if (this.textoComoJogar) this.textoComoJogar.destroy();
+      this.marcielo.pular();
+    };
+
+    // Entrada por teclado (desktop).
+    this.input.keyboard.on("keydown-SPACE", logicaPulo);
+
+    // Entrada por ponteiro (mouse e toque), mantendo compatibilidade mobile.
+    this.input.on("pointerdown", logicaPulo);
+
+    // Grupos de gerenciamento para iteração, lifecycle e colisões manuais por bounding box.
+    this.grupoPix = this.add.group();
+    this.grupoMaquininhas = this.add.group();
+
+    /**
+     * Cria e registra um obstáculo Pix na borda direita da tela.
+     *
+     * Regra de spawn:
+     * - Surge fora da viewport para entrar em movimento no frame seguinte.
+     *
+     * @returns {void}
+     */
+    const gerarPix = () => {
+      const pix = new Pix(this, new Phaser.Math.Vector2(1950, 885));
+      pix.setDepth(20);
+      this.grupoPix.add(pix);
+    };
+
+    /**
+     * Cria e registra uma maquininha coletável na borda direita da tela.
+     *
+     * Regra de spawn:
+     * - Mantém faixa vertical próxima ao chão para coerência com o fluxo de coleta.
+     *
+     * @returns {void}
+     */
+    const gerarMaquininha = () => {
+      const maquininha = new Maquininha(this, new Phaser.Math.Vector2(1950, 890));
+      maquininha.setDepth(20);
+      this.grupoMaquininhas.add(maquininha);
+    };
+
+    /*
+      Geração contínua de obstáculos e coletáveis com pesos.
+      O sorteio respeita probabilidade definida para cada tipo de objeto.
+    */
+
+    /**
+     * Agenda spawns indefinidamente usando intervalo variável e seleção ponderada.
+     *
+     * Regra de negócio:
+     * - Pix possui maior probabilidade (0.62) por representar ameaça recorrente.
+     * - Maquininha possui menor probabilidade (0.38) para balancear ganho de pontos.
+     * - Intervalo randômico evita padrão previsível e aumenta desafio.
+     *
+     * @returns {void}
+     */
+    const gerarObjetosPeriodicamente = () => {
+      const geradores = [gerarPix, gerarMaquininha];
+      const pesosGeradores = [0.62, 0.38];
+
+      // Seleciona o gerador com base em probabilidade ponderada (não uniforme).
+      const geradorEscolhido = selecionarGerador(geradores, pesosGeradores);
+
+      if (typeof geradorEscolhido === "function") {
+        geradorEscolhido();
+      }
+
+      // Reagenda recursivamente para manter pipeline contínuo de objetos na cena.
+      this.time.delayedCall(Phaser.Math.Between(900, 1500), () => {
+        gerarObjetosPeriodicamente();
+      });
+    };
+
+    /*
+      Pequena pausa inicial para o jogador se preparar
+      antes de iniciar o fluxo de objetos.
+    */
+    this.time.delayedCall(1000, () => {
+      gerarObjetosPeriodicamente();
+    });
+
+  }
+
+  /**
+   * Loop de atualização executado a cada frame.
+   *
+   * Responsabilidades:
+   * - Atualizar animação de nuvens.
+   * - Processar ciclo de vida (destruição off-screen) dos objetos dinâmicos.
+   * - Detectar colisões por interseção retangular.
+   * - Aplicar regras de pontuação e transição para fim de jogo.
+   * - Movimentar obstáculos/coletáveis com base no delta time.
+   *
+   * @param {number} _ Tempo acumulado da cena (não utilizado neste fluxo).
+   * @param {number} delta Tempo (ms) transcorrido desde o último frame.
+   * @returns {void}
+   */
+  update(_, delta) {
+    // Sanitiza o delta para manter estabilidade caso o loop receba valor inválido.
+    const deltaSeguro = Number.isFinite(delta) && delta > 0 ? delta : 16.67;
+
+    // Parallax das nuvens escalonado por delta para consistência entre diferentes FPS.
+    this.fundoNuvens.tilePositionX += 0.04 * deltaSeguro;
+
+    if (!this.marcielo || !this.grupoPix || !this.grupoMaquininhas) return;
+
+    // Snapshot dos limites do jogador no frame atual para reutilização nas interseções.
+    const limitesMarcielo = this.marcielo.getBounds();
+
+    /*
+      Loop de processamento dos obstáculos (Pix).
+      Fluxo de decisão:
+      1) Ignora objetos inativos.
+      2) Remove objetos fora da tela para liberar memória.
+      3) Em colisão válida, dispara estado de fim de jogo (uma única vez).
+      4) Se não colidiu, aplica deslocamento horizontal.
+    */
+    this.grupoPix.getChildren().forEach((pix) => {
+      // Guard clause para evitar trabalho desnecessário com entidades já invalidadas.
+      if (!pix.active) return;
+
+      // Condição de descarte quando o objeto ultrapassa a borda esquerda da tela.
+      if (pix.x < 0) {
+        pix.destroy();
+        return;
+      }
+
+      // Colisão com Pix encerra a partida e persiste a pontuação atual no registry.
+      if (
+        !this.estaEmFimDeJogo &&
+        Phaser.Geom.Intersects.RectangleToRectangle(
+          limitesMarcielo,
+          pix.getBounds()
+        )
+      ) {
+        this.estaEmFimDeJogo = true;
+        pix.destroy();
+        this.sound.play("dano", { volume: 0.5 });
+        this.ambienteCidade.stop();
+        this.registry.set("pontuacao", this.pontuacao);
+        this.scene.start("fimDeJogo");
+        return;
+      }
+
+      // Velocidade do obstáculo ajustada por delta para manter previsibilidade temporal.
+      pix.x -= 5 * this.velocidade * deltaSeguro;
+    });
+
+    /*
+      Loop de processamento dos coletáveis (Maquininha).
+      Fluxo de decisão:
+      1) Ignora objetos inativos.
+      2) Remove objetos fora da tela.
+      3) Em colisão válida, toca som, soma ponto e atualiza HUD.
+      4) Se não coletou, mantém deslocamento contínuo.
+    */
+    this.grupoMaquininhas.getChildren().forEach((maquininha) => {
+      // Guard clause para não processar entidades destruídas/inativas.
+      if (!maquininha.active) return;
+
+      // Coletáveis fora da área útil são descartados para evitar acúmulo no heap.
+      if (maquininha.x < 0) {
+        maquininha.destroy();
+        return;
+      }
+
+      // Colisão com maquininha incrementa pontuação e reforça feedback audiovisual.
+      if (
+        !this.estaEmFimDeJogo &&
+        Phaser.Geom.Intersects.RectangleToRectangle(
+          limitesMarcielo,
+          maquininha.getBounds()
+        )
+      ) {
+        this.sound.play("coleta");
+        maquininha.destroy();
+        this.pontuacao += 1;
+        this.textoPontuacao.setText(`PONTOS : ${this.pontuacao}`);
+        return;
+      }
+
+      // Coletável se move levemente mais lento que Pix para equilíbrio de risco/recompensa.
+      maquininha.x -= 4 * this.velocidade * deltaSeguro;
+    });
+  }
 }
-
-// Cena principal: cria cenário, personagem, surgimento e regras de pontuação.
-export default class Game extends Phaser.Scene {
-    constructor() {
-        super({ 'key': 'game' });
-
-        this.spawnTimer = null;
-        this.jumpHandler = null;
-    }
-
-    // Atualiza o texto de pontuação no HUD.
-    updateScoreText() {
-        this.scoreText.setText(`${SCORE_LABEL}${this.score}`);
-    }
-
-    // Cria um Pix fora da tela para entrar da direita para a esquerda.
-    spawnPix() {
-        const spawnX = this.scale.width + 30;
-        const spawnY = this.groundSurfaceY;
-        const pix = new Pix(this, new Phaser.Math.Vector2(spawnX, spawnY));
-        pix.setDepth(OBJECT_DEPTH);
-        this.pixGroup.add(pix);
-    }
-
-    // Cria uma Maquininha fora da tela para entrar da direita para a esquerda.
-    spawnMaquininha() {
-        const spawnX = this.scale.width + 30;
-        const spawnY = this.groundSurfaceY;
-        const maquininha = new Maquininha(this, new Phaser.Math.Vector2(spawnX, spawnY));
-        maquininha.setDepth(OBJECT_DEPTH);
-        this.maquininhas.add(maquininha);
-    }
-
-    // Agenda o próximo spawn com intervalo aleatório.
-    scheduleNextSpawn() {
-        const spawners = [
-            () => this.spawnPix(),
-            () => this.spawnMaquininha(),
-        ];
-
-        const chosenSpawner = selectSpawner(spawners, SPAWNER_WEIGHTS);
-        chosenSpawner();
-
-        this.spawnTimer = this.time.delayedCall(Phaser.Math.Between(500, 1500), () => {
-            this.scheduleNextSpawn();
-        });
-    }
-
-    // Remove objetos que saíram da tela para evitar acúmulo.
-    cleanupOffscreenObjects() {
-        for (const pix of this.pixGroup.getChildren()) {
-            if (pix.x < -200) {
-                pix.destroy();
-            }
-        }
-
-        for (const maquininha of this.maquininhas.getChildren()) {
-            if (maquininha.x < -200) {
-                maquininha.destroy();
-            }
-        }
-    }
-
-    // Monta todos os objetos do jogo e registra eventos de entrada e colisão.
-    create() {
-        const centerPos = {
-            x: this.scale.width / 2,
-            y: this.scale.height / 2,
-        };
-
-        const maniaTextConfig = {
-            fontFamily: "mania",
-            resolution: 8,
-        };
-
-        // Estado inicial de pontuação e velocidade do cenário.
-        this.score = 0;
-        this.speed = 0.1;
-
-        // Elementos visuais de fundo e plataforma.
-        this.background = this.add.tileSprite(0, -100, 0, 0, "chemical-bg");
-        this.background.setScale(2);
-        this.background.setOrigin(0);
-        this.background.setAlpha(0.8);
-
-        this.platforms = this.add.tileSprite(0, -950, 0, 0, "platforms");
-        this.platforms.setScale(4);
-        this.platforms.setOrigin(0);
-
-
-        // HUD de pontuação e instrução inicial.
-        this.scoreText = this.add.text(20, 20, '', {
-            fontFamily: "mania",
-            resolution: 8,
-            fontSize: 64,
-        });
-        this.updateScoreText();
-
-        this.howToPlayText = this.add
-            .text(centerPos.x, centerPos.y, "Pressione Espaço/Clique/Toque para pular!\nFuja do Pix", {
-                ...maniaTextConfig,
-                fontSize: 64,
-            })
-            .setOrigin(0.5);
-
-        // Chão físico invisível para a colisão do personagem.
-        this.ground = this.add.rectangle(960, 700, 1920, 120, 0x000000, 0);
-        this.physics.add.existing(this.ground, true);
-
-        // Y de superfície onde os obstáculos e coletáveis devem pousar visualmente.
-        this.groundSurfaceY = 640;
-
-        // Criação do personagem e acoplamento ao chão.
-        this.marcielo = new Marcielo(this, 200, 640);
-        this.marcielo.setDepth(10);
-        this.physics.add.collider(this.marcielo, this.ground);
-
-        // Entrada de pulo por teclado e toque/click.
-        this.jumpHandler = () => {
-            if (this.howToPlayText) this.howToPlayText.destroy();
-            this.marcielo.jump();
-        };
-        this.input.keyboard.on("keydown-SPACE", this.jumpHandler);
-        this.input.on("pointerdown", this.jumpHandler);
-
-        // Grupos dos objetos que surgem durante a partida.
-        this.pixGroup = this.add.group();
-        this.maquininhas = this.add.group();
-
-        // Colisão com Pix: perde ponto.
-        this.physics.add.collider(this.marcielo, this.pixGroup, (_, pix) => {
-            this.sound.play("hurt", { volume: 0.5 });
-            this.score = Math.max(0, this.score - 1);
-            this.updateScoreText();
-            pix.destroy();
-        });
-
-        // Coleta de Maquininha: ganha ponto.
-        this.physics.add.overlap(this.marcielo, this.maquininhas, (_, maquininha) => {
-            this.sound.play("coin", { volume: 0.5 });
-            maquininha.destroy();
-            this.score += 1;
-            this.updateScoreText();
-        });
-
-        // Spawns iniciais para feedback visual imediato.
-        const initialY = this.groundSurfaceY;
-
-        const pixInicial = new Pix(this, new Phaser.Math.Vector2(this.scale.width - 200, initialY));
-        pixInicial.setDepth(OBJECT_DEPTH);
-        this.pixGroup.add(pixInicial);
-
-        const maquininhaInicial = new Maquininha(this, new Phaser.Math.Vector2(this.scale.width - 450, initialY));
-        maquininhaInicial.setDepth(OBJECT_DEPTH);
-        this.maquininhas.add(maquininhaInicial);
-
-        this.scheduleNextSpawn();
-
-        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-            if (this.spawnTimer) {
-                this.spawnTimer.remove(false);
-            }
-            if (this.jumpHandler) {
-                this.input.keyboard.off("keydown-SPACE", this.jumpHandler);
-                this.input.off("pointerdown", this.jumpHandler);
-            }
-        });
-    }
-
-    // Atualiza parallax e deslocamento dos objetos em movimento.
-    update() {
-        const deltaScale = this.game.loop.delta / 16.666;
-
-        this.background.tilePositionX += 0.05 * this.game.loop.delta;
-        this.platforms.tilePositionX += this.speed * this.game.loop.delta;
-
-        for (const pix of this.pixGroup.getChildren()) {
-            pix.x -= PIX_SPEED * this.speed * deltaScale;
-        }
-
-        for (const maquininha of this.maquininhas.getChildren()) {
-            maquininha.x -= MAQUININHA_SPEED * this.speed * deltaScale;
-        }
-
-        this.cleanupOffscreenObjects();
-    }
-}
-
-

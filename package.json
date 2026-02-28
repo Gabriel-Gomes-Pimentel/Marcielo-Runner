@@ -1,5 +1,5 @@
 {
-  "name": "ponderada-projetoindividual",
+  "name": "sonic-runner-phaser",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "vite": "^7.3.1"
+    "vite": "^7.2.4"
   },
   "dependencies": {
     "phaser": "^4.0.0-rc.5"

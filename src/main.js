@@ -1,27 +1,32 @@
-import Phaser from 'phaser';
-import Loader from './scenes/Loader';
-import MenuScene from './scenes/MenuScene';
-import Game from './scenes/Game';
+import Phaser from "phaser";
+import CenaCarregamento from "./scenes/Loader";
+import MenuScene from "./scenes/MenuScene";
+import CenaJogo from "./scenes/Game";
+import CenaFimDeJogo from "./scenes/GameOver";
 
-// Configuração principal do jogo (tela, física, cenas e contêiner HTML).
-const config = {
-    width: 1920,
-    height: 1080,
-    backgroundColor: '#000000',
-    scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
+/*
+  Configuração principal do jogo:
+  - Define resolução base e escala responsiva
+  - Registra a sequência de cenas
+  - Habilita física Arcade com gravidade global
+*/
+const configuracao = {
+  width: 1920,
+  height: 1080,
+  backgroundColor: "#000000",
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
+  parent: "game",
+  scene: [CenaCarregamento, MenuScene, CenaJogo, CenaFimDeJogo],
+  physics: {
+    default: "arcade",
+    arcade: {
+      gravity: { y: 4000 },
+      debug: false,
     },
-    parent: 'app',
-    scene: [Loader, MenuScene, Game],
-    physics: {
-        default: 'arcade',
-        arcade: {
-            gravity: { y: 4000 },
-            debug: false
-        },
-    },
+  },
 };
 
-// Inicializa o jogo com a configuração definida acima.
-new Phaser.Game(config);
+new Phaser.Game(configuracao);
