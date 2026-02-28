@@ -2,6 +2,10 @@
 
 Endless Runner em Phaser 3 adaptado da base do Sonic Runner.
 
+## Jogue Agora
+
+https://ponderada-dragao-8fbc42.pages.git.inteli.edu.br/
+
 ## Informações do Jogo
 
 1. **Título do Jogo:** Marcielo Runner
