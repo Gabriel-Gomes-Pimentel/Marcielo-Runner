@@ -48,7 +48,6 @@ export default class CenaCarregamento extends Phaser.Scene {
     this.load.audio("pulo", assetUrl("sounds/Jump.wav"));
     this.load.audio("coleta", assetUrl("sounds/Ring.wav"));
     this.load.audio("dano", assetUrl("sounds/Hurt.wav"));
-    this.load.audio("cidade", assetUrl("sounds/city.mp3"));
   }
 
   async create() {

@@ -51,8 +51,16 @@ export default class CenaJogo extends Phaser.Scene {
     */
     this.estaEmFimDeJogo = false;
 
-    this.ambienteCidade = this.sound.add("cidade", { volume: 0.2, loop: true });
-    this.ambienteCidade.play();
+    const cacheAudio = this.cache?.audio;
+    const possuiCidade =
+      cacheAudio &&
+      typeof cacheAudio.exists === "function" &&
+      cacheAudio.exists("cidade");
+
+    if (possuiCidade) {
+      this.ambienteCidade = this.sound.add("cidade", { volume: 0.2, loop: true });
+      this.ambienteCidade.play();
+    }
 
     // Centro da tela utilizado como referência para textos e elementos centralizados.
     const posicaoCentral = { x: this.scale.width / 2, y: this.scale.height / 2 };
@@ -283,7 +291,9 @@ export default class CenaJogo extends Phaser.Scene {
         this.estaEmFimDeJogo = true;
         pix.destroy();
         this.sound.play("dano", { volume: 0.5 });
-        this.ambienteCidade.stop();
+        if (this.ambienteCidade && this.ambienteCidade.isPlaying) {
+          this.ambienteCidade.stop();
+        }
         this.registry.set("pontuacao", this.pontuacao);
         this.scene.start("fimDeJogo");
         return;
