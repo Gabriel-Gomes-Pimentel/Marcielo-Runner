@@ -1,97 +1,156 @@
-# Marcielo Runner (Phaser 3)
+# Marcielo Runner
 
-Endless Runner em Phaser 3 adaptado da base do Sonic Runner.
+Jogo do gênero Endless Runner desenvolvido com Phaser, em que o personagem Marcielo corre continuamente por um cenário urbano futurista, desviando de obstáculos e coletando itens para aumentar a pontuação.
 
-## Jogue Agora
+## Sumário
+
+- [Visão geral](#visão-geral)
+- [Demonstração](#demonstração)
+- [Funcionalidades](#funcionalidades)
+- [Tecnologias](#tecnologias)
+- [Requisitos](#requisitos)
+- [Instalação e execução local](#instalação-e-execução-local)
+- [Como jogar](#como-jogar)
+- [Scripts disponíveis](#scripts-disponíveis)
+- [Deploy no GitLab Pages](#deploy-no-gitlab-pages)
+- [Solução de problemas](#solução-de-problemas)
+- [Estrutura do projeto](#estrutura-do-projeto)
+- [Critérios acadêmicos atendidos](#critérios-acadêmicos-atendidos)
+
+## Visão geral
+
+Este projeto é uma adaptação inspirada no estilo de corrida infinita popularizado em exemplos como Sonic Runner, com personalização de tema, personagem e itens:
+
+- Sonic → Marcielo (personagem principal)
+- Ring → Maquininha (coletável)
+- Motobug → Pix (obstáculo)
+
+O jogo mantém a arquitetura em cenas, progressão de dificuldade e sistema de pontuação com persistência local.
+
+## Demonstração
+
+Acesse a versão publicada:
 
 https://ponderada-dragao-8fbc42.pages.git.inteli.edu.br/
 
-## Informações do Jogo
+## Funcionalidades
 
-1. **Título do Jogo:** Marcielo Runner
+- Corrida infinita com aumento gradual de dificuldade
+- Sistema de spawn com pesos para entidades
+- Coleta de itens para pontuação
+- Colisão com obstáculos e tela de fim de jogo
+- Pontuação atual e melhor pontuação com `localStorage`
+- Suporte a teclado, mouse e toque
 
-2. **Contexto:** Marcielo está em uma corrida infinita por uma cidade futurista. Enquanto o cenário se move em alta velocidade, o jogador precisa desviar dos obstáculos `Pix` e coletar `Maquininhas` para aumentar a pontuação e sobreviver o maior tempo possível.
+## Tecnologias
 
-3. **Controles:**
-	- `Space`: pular
-	- `Clique` com o mouse: pular
-	- `Toque` na tela (mobile): pular
+- JavaScript (ES Modules)
+- Phaser
+- Vite
+- GitLab Pages (deploy)
 
-## Inspiração
+## Requisitos
 
-Este projeto foi inspirado no vídeo:
-https://www.youtube.com/watch?v=7GlxzAcs40c
+Antes de começar, você precisa ter instalado:
 
-Substituições principais:
-- Sonic -> Marcielo (sprite estático, sem animações)
-- Ring -> Maquininha (coletável)
-- Motobug -> Pix (obstáculo)
+- Node.js (versão LTS recomendada)
+- npm
 
-Arquitetura mantida:
-- Loader Scene
-- Game Scene
-- GameOver Scene
-- Spawn com pesos
-- Progressão de velocidade e dificuldade
-- TileSprite para sensação de corrida
-- Score com registry/localStorage
+## Instalação e execução local
 
-## Prerequisites
+1. Instale as dependências:
 
-You should have Node and NPM installed on your machine.
+   ```bash
+   npm install
+   ```
 
-## How to Run
+2. Inicie o servidor de desenvolvimento:
 
-1. `npm install`
-2. `npm run dev`
+   ```bash
+   npm run dev
+   ```
 
-## How to Play
+3. Abra a URL exibida no terminal (geralmente `http://localhost:5173`).
 
-- Pressione `Space`, clique ou toque para pular.
-- Colete `Maquininha` para ganhar pontos.
+## Como jogar
+
+- `Espaço`: pular
+- `Clique` do mouse: pular
+- `Toque` na tela (mobile): pular
+
+Objetivo:
+
+- Colete `Maquininhas` para aumentar a pontuação.
 - Evite `Pix`; ao colidir, a partida termina.
 
-## To Build
+## Scripts disponíveis
 
-1. `npm run build`
-2. `npm run preview` to check that the build works.
+- `npm run dev`: executa em modo de desenvolvimento
+- `npm run build`: gera build de produção em `dist/`
+- `npm run preview`: executa preview local da build de produção
 
-## Deploy (GitLab Pages)
+## Deploy no GitLab Pages
 
-1. Faça commit e push na branch `main`.
-2. Aguarde o job `pages` terminar no CI/CD.
-3. Abra a URL publicada do projeto.
+O deploy é feito via pipeline com o job `pages` definido em `.gitlab-ci.yml`.
 
-### Se aparecer `Failed to load resource: net::ERR_HTTP2_PROTOCOL_ERROR`
+Fluxo de publicação:
 
-- Faça hard refresh (`Ctrl + F5`) ou abra em aba anônima.
-- Verifique se o último pipeline de `main` está verde.
-- Confirme que a URL aberta é a URL de Pages atual (não uma antiga em cache).
-- Se necessário, rode um novo pipeline (novo commit) para invalidar artefatos antigos.
+1. Faça commit das alterações.
+2. Envie para a branch `main`.
+3. Aguarde o pipeline finalizar com sucesso.
+4. Acesse a URL pública do projeto.
 
-Este projeto já está configurado para usar caminhos relativos no build (`base: "./"`) e carregamento de assets com `import.meta.env.BASE_URL`, o que evita quebra de arquivos estáticos no Pages.
+## Solução de problemas
 
-## Critérios da Avaliação (atendidos no código)
+### Erro `Failed to load resource: net::ERR_HTTP2_PROTOCOL_ERROR`
+
+Se esse erro aparecer no navegador:
+
+- Faça hard refresh (`Ctrl + F5`) ou teste em aba anônima.
+- Confirme que o último pipeline da `main` está verde.
+- Verifique se a URL acessada é a URL atual do GitLab Pages.
+- Rode um novo pipeline (novo commit) para invalidar artefatos em cache, se necessário.
+
+Observação técnica: o projeto já está configurado com caminhos relativos no build (`base: "./"`) e carregamento de assets com `import.meta.env.BASE_URL`, reduzindo problemas de resolução de recursos no Pages.
+
+## Estrutura do projeto
+
+```text
+.
+├─ public/
+│  ├─ fonts/
+│  ├─ graphics/
+│  └─ sounds/
+├─ src/
+│  ├─ entities/
+│  ├─ scenes/
+│  ├─ constants.js
+│  ├─ main.js
+│  └─ utils.js
+├─ index.html
+├─ vite.config.js
+└─ .gitlab-ci.yml
+```
+
+## Critérios acadêmicos atendidos
 
 ### 1) Execução do código
-- **Parâmetros default sem erro:** fluxo principal validado via `npm run build`.
-- **Variação de parâmetros sem erro:** o sorteio ponderado em `src/utils.js` trata pesos inválidos, diferentes tamanhos de lista e fallback seguro.
-- **Salvaguardas para erros propositais:**
-	- clique/toque fora da área útil é ignorado em `src/scenes/Game.js`;
-	- `delta` inválido no loop é normalizado em `src/scenes/Game.js`;
-	- `localStorage` corrompido é tratado com `try/catch` em `src/scenes/GameOver.js`;
-	- falha no carregamento de fonte não interrompe o jogo em `src/scenes/Loader.js`.
+
+- Fluxo principal validado com build de produção.
+- Sorteio ponderado com tratamento de entradas inválidas e fallback seguro.
+- Salvaguardas implementadas para interações e estados inválidos.
 
 ### 2) Comentários explicativos
-- O código possui comentários por blocos funcionais (cena, física, spawn, colisão, HUD e persistência).
-- Os comentários foram mantidos concisos e focados em intenção/regras de negócio para evitar poluição visual.
+
+- Comentários organizados por blocos funcionais (cenas, física, spawn, HUD e persistência).
+- Escrita objetiva para facilitar manutenção.
 
 ### 3) Nomeação de variáveis
-- Padrão `camelCase` adotado em variáveis e atributos (`posicaoCentral`, `melhorPontuacao`, `grupoMaquininhas`).
-- Nomes semânticos para variáveis de domínio e estado (`estaEmFimDeJogo`, `pesosGeradores`, `textoPontuacao`).
-- Variáveis locais e curtas usadas apenas em escopo pequeno quando apropriado (`indice`, `peso`).
-- Componentes visuais possuem nomes coerentes com o tipo/função (`imagemTitulo`, `fundoNuvens`, `camadaFundoUm`).
 
-### 4) Indentação
-- Arquivos JavaScript mantêm indentação consistente em 2 espaços e blocos alinhados.
-- Estruturas condicionais e loops estão organizadas para leitura sequencial do fluxo.
+- Padrão `camelCase` em variáveis e atributos.
+- Nomes semânticos alinhados ao domínio do jogo.
+
+### 4) Indentação e organização
+
+- Indentação consistente em 2 espaços.
+- Blocos condicionais e loops com legibilidade priorizada.
