@@ -157,10 +157,36 @@ export default class CenaJogo extends Phaser.Scene {
     };
 
     // Entrada por teclado (desktop).
-    this.input.keyboard.on("keydown-SPACE", logicaPulo);
+    if (this.input.keyboard) {
+      this.input.keyboard.enabled = true;
+      this.input.keyboard.addCapture("SPACE");
+      this.input.keyboard.on("keydown-SPACE", logicaPulo);
+    }
+
+    // Fallback global para casos em que o navegador não mantém foco no canvas.
+    this.manipuladorTeclaGlobal = (evento) => {
+      if (evento.code !== "Space") return;
+      evento.preventDefault();
+      logicaPulo();
+    };
+    window.addEventListener("keydown", this.manipuladorTeclaGlobal);
 
     // Entrada por ponteiro (mouse e toque), mantendo compatibilidade mobile.
     this.input.on("pointerdown", logicaPulo);
+
+    // Limpeza de listeners para evitar múltiplos binds ao reiniciar a cena.
+    this.events.once("shutdown", () => {
+      if (this.input && this.input.keyboard) {
+        this.input.keyboard.off("keydown-SPACE", logicaPulo);
+      }
+
+      this.input.off("pointerdown", logicaPulo);
+
+      if (this.manipuladorTeclaGlobal) {
+        window.removeEventListener("keydown", this.manipuladorTeclaGlobal);
+        this.manipuladorTeclaGlobal = null;
+      }
+    });
 
     // Grupos de gerenciamento para iteração, lifecycle e colisões manuais por bounding box.
     this.grupoPix = this.add.group();
