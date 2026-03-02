@@ -56,6 +56,21 @@ You should have Node and NPM installed on your machine.
 1. `npm run build`
 2. `npm run preview` to check that the build works.
 
+## Deploy (GitLab Pages)
+
+1. Faça commit e push na branch `main`.
+2. Aguarde o job `pages` terminar no CI/CD.
+3. Abra a URL publicada do projeto.
+
+### Se aparecer `Failed to load resource: net::ERR_HTTP2_PROTOCOL_ERROR`
+
+- Faça hard refresh (`Ctrl + F5`) ou abra em aba anônima.
+- Verifique se o último pipeline de `main` está verde.
+- Confirme que a URL aberta é a URL de Pages atual (não uma antiga em cache).
+- Se necessário, rode um novo pipeline (novo commit) para invalidar artefatos antigos.
+
+Este projeto já está configurado para usar caminhos relativos no build (`base: "./"`) e carregamento de assets com `import.meta.env.BASE_URL`, o que evita quebra de arquivos estáticos no Pages.
+
 ## Critérios da Avaliação (atendidos no código)
 
 ### 1) Execução do código
