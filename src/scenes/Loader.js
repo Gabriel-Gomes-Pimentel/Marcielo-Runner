@@ -44,7 +44,6 @@ export default class CenaCarregamento extends Phaser.Scene {
 
     this.load.image("plataformas", assetUrl("graphics/rua-plataforma.png"));
     this.load.image("camadaFundoUm", assetUrl("graphics/bgFirstLayer.png"));
-    this.load.image("camadaFundoDois", assetUrl("graphics/bgSecondLayer.png"));
 
     this.load.audio("pulo", assetUrl("sounds/Jump.wav"));
     this.load.audio("coleta", assetUrl("sounds/Ring.wav"));
@@ -58,7 +57,6 @@ export default class CenaCarregamento extends Phaser.Scene {
     this.textures.get("maquininha").setFilter(Phaser.Textures.FilterMode.NEAREST);
     this.textures.get("plataformas").setFilter(Phaser.Textures.FilterMode.NEAREST);
     this.textures.get("camadaFundoUm").setFilter(Phaser.Textures.FilterMode.NEAREST);
-    this.textures.get("camadaFundoDois").setFilter(Phaser.Textures.FilterMode.NEAREST);
 
     // Salvaguarda: se a fonte falhar, o jogo segue com fonte padrão para não bloquear execução.
     try {
