@@ -1,4 +1,3 @@
-import Phaser from "phaser";
 import CenaCarregamento from "./scenes/Loader";
 import MenuScene from "./scenes/MenuScene";
 import CenaJogo from "./scenes/Game";

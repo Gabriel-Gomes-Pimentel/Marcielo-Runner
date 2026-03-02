@@ -1,5 +1,3 @@
-import Phaser from "phaser";
-
 // Cena inicial: mostra fundo, título e botão para iniciar o jogo.
 export default class MenuScene extends Phaser.Scene {
   constructor() {
