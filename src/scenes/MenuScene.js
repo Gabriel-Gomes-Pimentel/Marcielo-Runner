@@ -6,11 +6,13 @@ export default class MenuScene extends Phaser.Scene {
 
   // Carrega os recursos usados exclusivamente no menu.
   preload() {
-    this.load.setPath(import.meta.env.BASE_URL);
-    this.load.image("nuvens", "graphics/cloud-bg.png");
-    this.load.image("ceu", "graphics/sky-bg.png");
-    this.load.image("titulo", "graphics/titulo-jogo.webp");
-    this.load.image("loja", "graphics/store-bg.webp");
+    const baseUrl = import.meta.env.BASE_URL === "./" ? "" : import.meta.env.BASE_URL;
+    const assetUrl = (caminho) => `${baseUrl}${caminho}`;
+
+    this.load.image("nuvens", assetUrl("graphics/cloud-bg.png"));
+    this.load.image("ceu", assetUrl("graphics/sky-bg.png"));
+    this.load.image("titulo", assetUrl("graphics/titulo-jogo.webp"));
+    this.load.image("loja", assetUrl("graphics/store-bg.webp"));
   }
 
   // Monta elementos visuais e registra interação do botão Jogar.
