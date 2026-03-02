@@ -163,13 +163,26 @@ export default class CenaJogo extends Phaser.Scene {
       this.input.keyboard.on("keydown-SPACE", logicaPulo);
     }
 
+    // Garante foco no canvas para melhorar captura de teclado entre navegadores.
+    const canvasJogo = this.game && this.game.canvas;
+    if (canvasJogo && typeof canvasJogo.setAttribute === "function") {
+      canvasJogo.setAttribute("tabindex", "0");
+      canvasJogo.focus();
+    }
+
     // Fallback global para casos em que o navegador não mantém foco no canvas.
     this.manipuladorTeclaGlobal = (evento) => {
-      if (evento.code !== "Space") return;
+      const teclaEspaco =
+        evento.code === "Space" ||
+        evento.key === " " ||
+        evento.key === "Spacebar" ||
+        evento.key === "Space";
+
+      if (!teclaEspaco) return;
       evento.preventDefault();
       logicaPulo();
     };
-    window.addEventListener("keydown", this.manipuladorTeclaGlobal);
+    document.addEventListener("keydown", this.manipuladorTeclaGlobal, true);
 
     // Entrada por ponteiro (mouse e toque), mantendo compatibilidade mobile.
     this.input.on("pointerdown", logicaPulo);
@@ -183,7 +196,7 @@ export default class CenaJogo extends Phaser.Scene {
       this.input.off("pointerdown", logicaPulo);
 
       if (this.manipuladorTeclaGlobal) {
-        window.removeEventListener("keydown", this.manipuladorTeclaGlobal);
+        document.removeEventListener("keydown", this.manipuladorTeclaGlobal, true);
         this.manipuladorTeclaGlobal = null;
       }
     });
