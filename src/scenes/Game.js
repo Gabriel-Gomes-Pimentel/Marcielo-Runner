@@ -139,7 +139,12 @@ export default class CenaJogo extends Phaser.Scene {
     */
     const logicaPulo = (pointer) => {
       // Ignora cliques/toques fora da área útil para evitar ações propositadamente inválidas.
-      if (pointer) {
+      const eventoEhPonteiro =
+        pointer &&
+        typeof pointer.x === "number" &&
+        typeof pointer.y === "number";
+
+      if (eventoEhPonteiro) {
         const cliqueDentroDaTela =
           pointer.x >= 0 &&
           pointer.y >= 0 &&
